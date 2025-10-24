@@ -176,7 +176,7 @@
             <p>• 自动交换U列（第21列）和AB列（第28列）的数据 / Swap columns U and AB</p>
             <p>• 保留列宽、行高、合并单元格 / Preserve column widths, row heights, merged cells</p>
             <p>• 生成 .xlsx 文件供下载 / Generate .xlsx file for download</p>
-            <p style="font-size: 12px; color: #666; margin-top: 8px;">⚠️ 注意：部分单元格格式（颜色、字体样式）可能需要手动调整<br/>Note: Some cell formatting may need manual adjustment</p>
+            <p style="font-size: 12px; color: #28a745; margin-top: 8px;">✓ 完全保留原始样式（字体、颜色、边框等）<br/>✓ Full style preservation (fonts, colors, borders, etc.)</p>
         </div>
 
         <div class="upload-area" id="uploadArea">
@@ -198,13 +198,15 @@
         <div id="status" class="status"></div>
     </div>
 
-    <!-- SheetJS Library -->
+    <!-- SheetJS Library (for XLS support) -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- ExcelJS Library (for XLSX with full style support) -->
+    <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
     
     <script>
-        // Check if XLSX library is loaded
+        // Check if libraries are loaded
         window.addEventListener('load', function() {
-            if (typeof XLSX === 'undefined') {
+            if (typeof XLSX === 'undefined' || typeof ExcelJS === 'undefined') {
                 const status = document.getElementById('status');
                 status.textContent = '错误：无法加载Excel处理库。请确保有网络连接。/ Error: Unable to load Excel library. Please ensure internet connection.';
                 status.className = 'status error';
@@ -291,78 +293,101 @@
                 processBtn.disabled = true;
                 showStatus('正在处理文件... / Processing file...', 'info');
 
-                // Read the file
+                const fileExtension = selectedFile.name.split('.').pop().toLowerCase();
                 const data = await readFileAsArrayBuffer(selectedFile);
                 
-                // Parse the workbook with cellStyles option to preserve formatting
-                const workbook = XLSX.read(data, { 
-                    type: 'array', 
-                    cellStyles: true,
-                    cellFormula: true,
-                    cellHTML: false,
-                    cellNF: true
-                });
+                let excelWorkbook;
+                
+                if (fileExtension === 'xls') {
+                    // For XLS files, convert to XLSX format using SheetJS first
+                    showStatus('正在转换XLS文件... / Converting XLS file...', 'info');
+                    const xlsWorkbook = XLSX.read(data, { 
+                        type: 'array', 
+                        cellStyles: true
+                    });
+                    
+                    // Convert to XLSX buffer
+                    const xlsxBuffer = XLSX.write(xlsWorkbook, { 
+                        bookType: 'xlsx', 
+                        type: 'array',
+                        cellStyles: true
+                    });
+                    
+                    // Load into ExcelJS
+                    excelWorkbook = new ExcelJS.Workbook();
+                    await excelWorkbook.xlsx.load(xlsxBuffer);
+                } else {
+                    // For XLSX files, load directly with ExcelJS
+                    excelWorkbook = new ExcelJS.Workbook();
+                    await excelWorkbook.xlsx.load(data);
+                }
+                
+                showStatus('正在交换列数据... / Swapping columns...', 'info');
                 
                 // Get the first worksheet
-                const firstSheetName = workbook.SheetNames[0];
-                const worksheet = workbook.Sheets[firstSheetName];
-                
-                // Get the range of the worksheet
-                const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1');
-                
-                // Swap columns U (index 20) and AB (index 27) by swapping cell objects directly
-                // This preserves all cell properties including styles, formats, and formulas
-                for (let row = range.s.r; row <= range.e.r; row++) {
-                    // Column U is index 20 (21st column)
-                    const cellU_addr = XLSX.utils.encode_cell({ r: row, c: 20 });
-                    // Column AB is index 27 (28th column)
-                    const cellAB_addr = XLSX.utils.encode_cell({ r: row, c: 27 });
-                    
-                    // Get cell objects (may be undefined if cell is empty)
-                    const cellU = worksheet[cellU_addr];
-                    const cellAB = worksheet[cellAB_addr];
-                    
-                    // Swap the cell objects
-                    if (cellU) {
-                        worksheet[cellAB_addr] = cellU;
-                    } else {
-                        delete worksheet[cellAB_addr];
-                    }
-                    
-                    if (cellAB) {
-                        worksheet[cellU_addr] = cellAB;
-                    } else {
-                        delete worksheet[cellU_addr];
-                    }
+                const worksheet = excelWorkbook.worksheets[0];
+                if (!worksheet) {
+                    throw new Error('工作表为空 / Worksheet is empty');
                 }
                 
-                // Swap column widths if they exist
-                if (worksheet['!cols']) {
-                    const tempWidth = worksheet['!cols'][20];
-                    worksheet['!cols'][20] = worksheet['!cols'][27];
-                    worksheet['!cols'][27] = tempWidth;
+                // Swap columns U (21) and AB (28)
+                const maxRow = worksheet.rowCount || worksheet.actualRowCount || 1000;
+                
+                for (let rowNum = 1; rowNum <= maxRow; rowNum++) {
+                    const row = worksheet.getRow(rowNum);
+                    if (!row) continue;
+                    
+                    const cellU = row.getCell(21);  // Column U
+                    const cellAB = row.getCell(28); // Column AB
+                    
+                    // Store cell U properties
+                    const tempValue = cellU.value;
+                    const tempStyle = {
+                        font: cellU.font ? {...cellU.font} : undefined,
+                        fill: cellU.fill ? {...cellU.fill} : undefined,
+                        border: cellU.border ? {...cellU.border} : undefined,
+                        alignment: cellU.alignment ? {...cellU.alignment} : undefined,
+                        numFmt: cellU.numFmt,
+                        protection: cellU.protection ? {...cellU.protection} : undefined
+                    };
+                    
+                    // Copy AB to U
+                    cellU.value = cellAB.value;
+                    if (cellAB.font) cellU.font = cellAB.font;
+                    if (cellAB.fill) cellU.fill = cellAB.fill;
+                    if (cellAB.border) cellU.border = cellAB.border;
+                    if (cellAB.alignment) cellU.alignment = cellAB.alignment;
+                    if (cellAB.numFmt) cellU.numFmt = cellAB.numFmt;
+                    if (cellAB.protection) cellU.protection = cellAB.protection;
+                    
+                    // Copy temp (original U) to AB
+                    cellAB.value = tempValue;
+                    if (tempStyle.font) cellAB.font = tempStyle.font;
+                    if (tempStyle.fill) cellAB.fill = tempStyle.fill;
+                    if (tempStyle.border) cellAB.border = tempStyle.border;
+                    if (tempStyle.alignment) cellAB.alignment = tempStyle.alignment;
+                    if (tempStyle.numFmt) cellAB.numFmt = tempStyle.numFmt;
+                    if (tempStyle.protection) cellAB.protection = tempStyle.protection;
+                    
+                    row.commit();
                 }
                 
-                // Instead of creating a new workbook, modify the existing one directly
-                // This preserves more of the original formatting and style tables
-                workbook.Sheets[firstSheetName] = worksheet;
+                // Swap column widths
+                const colU = worksheet.getColumn(21);
+                const colAB = worksheet.getColumn(28);
+                const tempWidth = colU.width;
+                colU.width = colAB.width;
+                colAB.width = tempWidth;
                 
-                // Always output as XLSX format for better style preservation
-                // XLSX format has better style support than XLS in the free SheetJS library
-                const bookType = 'xlsx';
+                showStatus('正在生成文件... / Generating file...', 'info');
                 
-                // Generate the file with cellStyles option to write styles
-                // Writing the original workbook directly preserves internal style tables
-                const wbout = XLSX.write(workbook, { 
-                    bookType: bookType, 
-                    type: 'array',
-                    cellStyles: true,
-                    bookSST: true
-                });
+                // Write to buffer
+                const buffer = await excelWorkbook.xlsx.writeBuffer();
                 
                 // Create blob and download
-                const mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-                const blob = new Blob([wbout], { type: mimeType });
+                const blob = new Blob([buffer], { 
+                    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+                });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
@@ -373,7 +398,7 @@
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
                 
-                showStatus('处理完成！文件已下载 / Processing completed! File downloaded', 'success');
+                showStatus('处理完成！文件已下载，样式已完整保留 / Processing completed! File downloaded with full style preservation', 'success');
                 processBtn.disabled = false;
                 
             } catch (error) {

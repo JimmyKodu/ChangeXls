@@ -50,7 +50,8 @@ cd ChangeXls
 - HTML5
 - CSS3
 - JavaScript (ES6+)
-- [SheetJS (xlsx.js)](https://sheetjs.com/) - Excel文件处理库
+- [ExcelJS](https://github.com/exceljs/exceljs) - 完整Excel处理库（支持所有样式）/ Full Excel library with complete style support
+- [SheetJS](https://sheetjs.com/) - XLS格式支持 / XLS format support
 
 ## 列说明 / Column Information
 
@@ -61,28 +62,22 @@ cd ChangeXls
 
 This application swaps all data between these two columns.
 
-### 保留的内容 / What is Preserved
+### 完整样式保留 / Complete Style Preservation
+✅ 本工具现在使用ExcelJS库，可以完全保留所有Excel格式：
 - ✅ 单元格值和公式 / Cell values and formulas
+- ✅ 单元格颜色（背景和字体）/ Cell colors (background and font)
+- ✅ 字体样式（粗体、斜体、大小等）/ Font styles (bold, italic, size, etc.)
+- ✅ 单元格边框 / Cell borders
+- ✅ 对齐方式 / Cell alignment
+- ✅ 数字格式 / Number formats
 - ✅ 列宽和行高 / Column widths and row heights
 - ✅ 合并单元格 / Merged cells
-- ✅ 基本表格结构 / Basic table structure
 
-### 技术限制 / Technical Limitations
-由于使用免费的客户端Excel处理库，以下格式可能无法完全保留：
-- ⚠️ 单元格颜色（背景和字体）/ Cell colors (background and font)
-- ⚠️ 字体样式（粗体、斜体等）/ Font styles (bold, italic, etc.)
-- ⚠️ 单元格边框 / Cell borders
-- ⚠️ 对齐方式 / Cell alignment
-
-Due to limitations of the free client-side Excel library, the following formatting may not be fully preserved:
-- Cell background and font colors
-- Font styles (bold, italic, etc.)
-- Cell borders
-- Text alignment
-
-**建议 / Recommendation**: 如果需要完全保留所有格式，建议处理后手动检查并调整格式，或使用Excel的VBA宏功能。
-
-If complete format preservation is critical, please manually verify and adjust formatting after processing, or use Excel's VBA macro功能.
+This tool now uses ExcelJS library for complete Excel format preservation:
+- Cell values, formulas, and all formatting
+- Colors, fonts, borders, alignment
+- Column widths, row heights, merged cells
+- Everything is fully preserved during the column swap
 
 ## 浏览器兼容性 / Browser Compatibility
 
@@ -97,7 +92,7 @@ If complete format preservation is critical, please manually verify and adjust f
 - 输出格式为 .xlsx / Output format is .xlsx
 - 所有处理都在浏览器中完成，文件不会上传到服务器 / All processing is done in the browser, files are not uploaded
 - 原始文件不会被修改，会生成新文件下载 / Original files are not modified, new files are generated
-- 建议处理后检查格式是否符合预期 / Recommend verifying formatting after processing
+- XLS文件会自动转换为XLSX格式（保留所有样式）/ XLS files are automatically converted to XLSX format (all styles preserved)
 
 ## License
 

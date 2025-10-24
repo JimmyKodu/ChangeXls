@@ -2,5 +2,8 @@
   "devDependencies": {
     "playwright": "^1.56.1",
     "xlsx": "^0.18.5"
+  },
+  "dependencies": {
+    "exceljs": "^4.4.0"
   }
 }
