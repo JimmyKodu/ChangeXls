@@ -2,6 +2,11 @@
 test_sample.xls
 *_swapped.xls
 *_swapped.xlsx
+test-*.js
+test-*.html
+verify-*.js
+validate-*.js
+/tmp/
 
 # Node modules
 node_modules/
