@@ -286,6 +286,119 @@
             status.style.display = 'block';
         }
 
+        // Function to apply styles from SheetJS XLS workbook to ExcelJS workbook
+        function applyXLSStyles(xlsWorkbook, excelWorkbook) {
+            const sheetName = xlsWorkbook.SheetNames[0];
+            const xlsSheet = xlsWorkbook.Sheets[sheetName];
+            const excelSheet = excelWorkbook.worksheets[0];
+            
+            if (!xlsSheet || !excelSheet) return;
+            
+            // Get the range of the sheet
+            const range = XLSX.utils.decode_range(xlsSheet['!ref'] || 'A1');
+            
+            // Iterate through all cells in the range
+            for (let R = range.s.r; R <= range.e.r; R++) {
+                for (let C = range.s.c; C <= range.e.c; C++) {
+                    const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+                    const xlsCell = xlsSheet[cellAddress];
+                    
+                    if (!xlsCell || !xlsCell.s) continue;
+                    
+                    // Get the corresponding ExcelJS cell (ExcelJS uses 1-based indexing)
+                    const excelCell = excelSheet.getRow(R + 1).getCell(C + 1);
+                    const style = xlsCell.s;
+                    
+                    // Apply fill/background color
+                    if (style.fgColor || style.bgColor || style.patternType) {
+                        const fill = { type: 'pattern' };
+                        
+                        // Map pattern type
+                        if (style.patternType) {
+                            const patternMap = {
+                                'solid': 'solid',
+                                'gray125': 'gray125',
+                                'gray0625': 'gray0625',
+                                'mediumGray': 'mediumGray',
+                                'lightGray': 'lightGray',
+                                'darkGray': 'darkGray'
+                            };
+                            fill.pattern = patternMap[style.patternType] || 'solid';
+                        } else {
+                            fill.pattern = 'solid';
+                        }
+                        
+                        // Apply foreground color (text area color in pattern fills)
+                        if (style.fgColor && style.fgColor.rgb) {
+                            fill.fgColor = { argb: 'FF' + style.fgColor.rgb };
+                        }
+                        
+                        // Apply background color (background area color in pattern fills)
+                        if (style.bgColor && style.bgColor.rgb) {
+                            fill.bgColor = { argb: 'FF' + style.bgColor.rgb };
+                        }
+                        
+                        excelCell.fill = fill;
+                    }
+                    
+                    // Apply font properties
+                    if (style.fontName || style.sz || style.color || style.bold || style.italic || style.underline) {
+                        const font = {};
+                        
+                        if (style.fontName) font.name = style.fontName;
+                        if (style.sz) font.size = style.sz;
+                        if (style.bold) font.bold = true;
+                        if (style.italic) font.italic = true;
+                        if (style.underline) font.underline = true;
+                        
+                        // Apply font color
+                        if (style.color && style.color.rgb) {
+                            font.color = { argb: 'FF' + style.color.rgb };
+                        }
+                        
+                        excelCell.font = font;
+                    }
+                    
+                    // Apply alignment
+                    if (style.alignment) {
+                        const alignment = {};
+                        if (style.alignment.horizontal) alignment.horizontal = style.alignment.horizontal;
+                        if (style.alignment.vertical) alignment.vertical = style.alignment.vertical;
+                        if (style.alignment.wrapText) alignment.wrapText = style.alignment.wrapText;
+                        excelCell.alignment = alignment;
+                    }
+                    
+                    // Apply borders
+                    if (style.border) {
+                        const border = {};
+                        const borderStyleMap = {
+                            'thin': 'thin',
+                            'medium': 'medium',
+                            'thick': 'thick',
+                            'double': 'double',
+                            'dotted': 'dotted',
+                            'dashed': 'dashed'
+                        };
+                        
+                        ['top', 'bottom', 'left', 'right'].forEach(side => {
+                            if (style.border[side]) {
+                                border[side] = {
+                                    style: borderStyleMap[style.border[side].style] || 'thin'
+                                };
+                                if (style.border[side].color && style.border[side].color.rgb) {
+                                    border[side].color = { argb: 'FF' + style.border[side].color.rgb };
+                                }
+                            }
+                        });
+                        
+                        if (Object.keys(border).length > 0) {
+                            excelCell.border = border;
+                        }
+                    }
+                }
+            }
+        }
+
         processBtn.addEventListener('click', async () => {
             if (!selectedFile) return;
 
@@ -297,6 +410,7 @@
                 const data = await readFileAsArrayBuffer(selectedFile);
                 
                 let excelWorkbook;
+                let xlsWorkbookWithStyles = null;
                 
                 if (fileExtension === 'xls') {
                     // For XLS files, convert to XLSX format using SheetJS first
@@ -305,6 +419,9 @@
                         type: 'array', 
                         cellStyles: true
                     });
+                    
+                    // Store the original XLS workbook for style preservation
+                    xlsWorkbookWithStyles = xlsWorkbook;
                     
                     // Convert to XLSX buffer
                     const xlsxBuffer = XLSX.write(xlsWorkbook, { 
@@ -320,6 +437,12 @@
                     // For XLSX files, load directly with ExcelJS
                     excelWorkbook = new ExcelJS.Workbook();
                     await excelWorkbook.xlsx.load(data);
+                }
+                
+                // Apply styles from original XLS file if available
+                if (xlsWorkbookWithStyles) {
+                    showStatus('正在应用原始样式... / Applying original styles...', 'info');
+                    applyXLSStyles(xlsWorkbookWithStyles, excelWorkbook);
                 }
                 
                 showStatus('正在交换列数据... / Swapping columns...', 'info');
