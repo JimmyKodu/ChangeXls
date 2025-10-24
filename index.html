@@ -172,16 +172,17 @@
 
         <div class="info-box">
             <p><strong>功能说明 / Description:</strong></p>
-            <p>• 支持导入 .xls 文件（Excel 97-2003格式）</p>
-            <p>• 自动交换U列（第21列）和AB列（第28列）的数据</p>
-            <p>• 生成新的 .xls 文件供下载</p>
+            <p>• 支持导入 .xls 和 .xlsx 文件 / Support .xls and .xlsx files</p>
+            <p>• 自动交换U列（第21列）和AB列（第28列）的数据 / Swap columns U and AB</p>
+            <p>• 保留原始样式和格式（字体、颜色、边框等）/ Preserve styles and formatting</p>
+            <p>• 生成 .xlsx 文件供下载 / Generate .xlsx file for download</p>
         </div>
 
         <div class="upload-area" id="uploadArea">
             <div class="upload-icon">📁</div>
-            <div class="upload-text">拖拽文件到这里或点击选择文件</div>
-            <div class="upload-text" style="font-size: 12px; color: #999;">支持 .xls 文件</div>
-            <input type="file" id="fileInput" class="file-input" accept=".xls">
+            <div class="upload-text">拖拽文件到这里或点击选择文件 / Drag file here or click to select</div>
+            <div class="upload-text" style="font-size: 12px; color: #999;">支持 .xls 和 .xlsx 文件 / Support .xls and .xlsx files</div>
+            <input type="file" id="fileInput" class="file-input" accept=".xls,.xlsx">
         </div>
 
         <div class="file-info" id="fileInfo">
@@ -255,8 +256,8 @@
         function handleFileSelect(file) {
             // Check file extension
             const fileExtension = file.name.split('.').pop().toLowerCase();
-            if (fileExtension !== 'xls') {
-                showStatus('请选择 .xls 文件！/ Please select a .xls file!', 'error');
+            if (fileExtension !== 'xls' && fileExtension !== 'xlsx') {
+                showStatus('请选择 .xls 或 .xlsx 文件！/ Please select a .xls or .xlsx file!', 'error');
                 return;
             }
 
@@ -292,71 +293,80 @@
                 // Read the file
                 const data = await readFileAsArrayBuffer(selectedFile);
                 
-                // Parse the workbook
-                const workbook = XLSX.read(data, { type: 'array' });
+                // Parse the workbook with cellStyles option to preserve formatting
+                const workbook = XLSX.read(data, { 
+                    type: 'array', 
+                    cellStyles: true,
+                    cellFormula: true,
+                    cellHTML: false,
+                    cellNF: true
+                });
                 
                 // Get the first worksheet
                 const firstSheetName = workbook.SheetNames[0];
                 const worksheet = workbook.Sheets[firstSheetName];
                 
-                // Convert to JSON for easier manipulation
-                const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+                // Get the range of the worksheet
+                const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1');
                 
-                // Swap columns U (index 20) and AB (index 27)
-                // Column U is the 21st column (index 20)
-                // Column AB is the 28th column (index 27)
-                const swappedData = jsonData.map(row => {
-                    if (row.length > 0) {
-                        const newRow = [...row];
-                        // Ensure the row has enough columns
-                        while (newRow.length < 28) {
-                            newRow.push('');
-                        }
-                        // Swap columns U (index 20) and AB (index 27)
-                        const temp = newRow[20];
-                        newRow[20] = newRow[27] !== undefined ? newRow[27] : '';
-                        newRow[27] = temp !== undefined ? temp : '';
-                        return newRow;
+                // Swap columns U (index 20) and AB (index 27) by swapping cell objects directly
+                // This preserves all cell properties including styles, formats, and formulas
+                for (let row = range.s.r; row <= range.e.r; row++) {
+                    // Column U is index 20 (21st column)
+                    const cellU_addr = XLSX.utils.encode_cell({ r: row, c: 20 });
+                    // Column AB is index 27 (28th column)
+                    const cellAB_addr = XLSX.utils.encode_cell({ r: row, c: 27 });
+                    
+                    // Get cell objects (may be undefined if cell is empty)
+                    const cellU = worksheet[cellU_addr];
+                    const cellAB = worksheet[cellAB_addr];
+                    
+                    // Swap the cell objects
+                    if (cellU) {
+                        worksheet[cellAB_addr] = cellU;
+                    } else {
+                        delete worksheet[cellAB_addr];
                     }
-                    return row;
+                    
+                    if (cellAB) {
+                        worksheet[cellU_addr] = cellAB;
+                    } else {
+                        delete worksheet[cellU_addr];
+                    }
+                }
+                
+                // Swap column widths if they exist
+                if (worksheet['!cols']) {
+                    const tempWidth = worksheet['!cols'][20];
+                    worksheet['!cols'][20] = worksheet['!cols'][27];
+                    worksheet['!cols'][27] = tempWidth;
+                }
+                
+                // Instead of creating a new workbook, modify the existing one directly
+                // This preserves more of the original formatting and style tables
+                workbook.Sheets[firstSheetName] = worksheet;
+                
+                // Always output as XLSX format for better style preservation
+                // XLSX format has better style support than XLS in the free SheetJS library
+                const bookType = 'xlsx';
+                
+                // Generate the file with cellStyles option to write styles
+                // Writing the original workbook directly preserves internal style tables
+                const wbout = XLSX.write(workbook, { 
+                    bookType: bookType, 
+                    type: 'array',
+                    cellStyles: true,
+                    bookSST: true
                 });
                 
-                // Create a new worksheet from the swapped data
-                const newWorksheet = XLSX.utils.aoa_to_sheet(swappedData);
-                
-                // Copy column widths and other properties if they exist
-                if (worksheet['!cols']) {
-                    newWorksheet['!cols'] = [...worksheet['!cols']];
-                    // Swap column widths
-                    if (newWorksheet['!cols'][20] || newWorksheet['!cols'][27]) {
-                        const tempWidth = newWorksheet['!cols'][20];
-                        newWorksheet['!cols'][20] = newWorksheet['!cols'][27];
-                        newWorksheet['!cols'][27] = tempWidth;
-                    }
-                }
-                
-                if (worksheet['!rows']) {
-                    newWorksheet['!rows'] = worksheet['!rows'];
-                }
-                
-                if (worksheet['!merges']) {
-                    newWorksheet['!merges'] = worksheet['!merges'];
-                }
-                
-                // Create a new workbook with the modified worksheet
-                const newWorkbook = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, firstSheetName);
-                
-                // Generate the file
-                const wbout = XLSX.write(newWorkbook, { bookType: 'xls', type: 'array' });
-                
                 // Create blob and download
-                const blob = new Blob([wbout], { type: 'application/vnd.ms-excel' });
+                const mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+                const blob = new Blob([wbout], { type: mimeType });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                const originalName = selectedFile.name.replace('.xls', '');
-                a.download = `${originalName}_swapped.xls`;
+                const originalName = selectedFile.name.replace(/\.(xls|xlsx)$/i, '');
+                a.download = `${originalName}_swapped.xlsx`;
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
