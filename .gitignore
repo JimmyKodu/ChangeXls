@@ -1,0 +1,12 @@
+# Test files
+test_sample.xls
+*_swapped.xls
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
