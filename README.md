@@ -68,19 +68,25 @@ This application swaps all data between these two columns.
 ✅ 使用ExcelJS库，完全保留所有格式 / Full style preservation with ExcelJS:
 - ✅ 单元格值和公式 / Cell values and formulas
 - ✅ 单元格颜色（背景和字体）/ Cell colors (background and font)
-- ✅ 字体样式（粗体、斜体、大小等）/ Font styles (bold, italic, size, etc.)
+- ✅ 字体样式（粗体、斜体、大小、字体名称）/ Font styles (bold, italic, size, font name)
 - ✅ 单元格边框 / Cell borders
 - ✅ 对齐方式 / Cell alignment
 - ✅ 数字格式 / Number formats
 - ✅ 列宽和行高 / Column widths and row heights
 - ✅ 合并单元格 / Merged cells
 
-**XLS文件 / XLS Files:**
-⚠️ XLS格式会自动转换为XLSX。由于格式转换限制，部分样式可能简化。
+**XLS文件（旧格式）/ XLS Files (Legacy Format):**
+⚠️ **重要提示：**由于XLS是旧的二进制格式，JavaScript库无法完整提取字体和边框信息。
 - ✅ 数据和基本结构完全保留 / Data and basic structure fully preserved  
-- ⚠️ 复杂样式可能需要手动调整 / Complex styles may need manual adjustment
+- ✅ 列宽和行高保留 / Column widths and row heights preserved
+- ⚠️ **字体信息（字体名称、大小、粗体等）会丢失** / Font info (name, size, bold, etc.) will be lost
+- ⚠️ **边框信息会丢失** / Border info will be lost
+- ⚠️ 处理后会使用默认格式 / Default formatting will be applied after processing
 
-XLS files are auto-converted to XLSX. Due to format conversion limitations, some complex styles may be simplified. Data and structure are fully preserved.
+**💡 建议 / Recommendation:**
+如需保留完整格式，请先在Microsoft Excel或LibreOffice中将XLS文件"另存为"XLSX格式，然后使用本工具处理。
+
+For full formatting preservation, please use "Save As" in Microsoft Excel or LibreOffice to convert XLS files to XLSX format first, then use this tool.
 
 ## 浏览器兼容性 / Browser Compatibility
 
