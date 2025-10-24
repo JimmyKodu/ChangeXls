@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XLS列交换工具 - Swap Columns U and AB</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .info-box {
+            background: #f0f4ff;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin-bottom: 25px;
+            border-radius: 5px;
+        }
+
+        .info-box p {
+            color: #555;
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 5px;
+        }
+
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+
+        .upload-area:hover {
+            background: #f8f9ff;
+            border-color: #764ba2;
+        }
+
+        .upload-area.dragover {
+            background: #f0f4ff;
+            border-color: #764ba2;
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        .upload-text {
+            color: #666;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-block;
+            margin-top: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 14px;
+            display: none;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .file-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .file-info p {
+            color: #555;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+
+        .file-info strong {
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>XLS列交换工具</h1>
+        <p class="subtitle">Swap Columns U and AB in XLS Files</p>
+
+        <div class="info-box">
+            <p><strong>功能说明 / Description:</strong></p>
+            <p>• 支持导入 .xls 文件（Excel 97-2003格式）</p>
+            <p>• 自动交换U列（第21列）和AB列（第28列）的数据</p>
+            <p>• 生成新的 .xls 文件供下载</p>
+        </div>
+
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📁</div>
+            <div class="upload-text">拖拽文件到这里或点击选择文件</div>
+            <div class="upload-text" style="font-size: 12px; color: #999;">支持 .xls 文件</div>
+            <input type="file" id="fileInput" class="file-input" accept=".xls">
+        </div>
+
+        <div class="file-info" id="fileInfo">
+            <p><strong>文件名:</strong> <span id="fileName"></span></p>
+            <p><strong>文件大小:</strong> <span id="fileSize"></span></p>
+        </div>
+
+        <div style="text-align: center;">
+            <button id="processBtn" class="btn" disabled>处理文件 / Process File</button>
+        </div>
+
+        <div id="status" class="status"></div>
+    </div>
+
+    <!-- SheetJS Library -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    
+    <script>
+        // Check if XLSX library is loaded
+        window.addEventListener('load', function() {
+            if (typeof XLSX === 'undefined') {
+                const status = document.getElementById('status');
+                status.textContent = '错误：无法加载Excel处理库。请确保有网络连接。/ Error: Unable to load Excel library. Please ensure internet connection.';
+                status.className = 'status error';
+                status.style.display = 'block';
+            }
+        });
+
+        let selectedFile = null;
+
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const processBtn = document.getElementById('processBtn');
+        const status = document.getElementById('status');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileName = document.getElementById('fileName');
+        const fileSize = document.getElementById('fileSize');
+
+        // Click to upload
+        uploadArea.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        // File selection
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                handleFileSelect(file);
+            }
+        });
+
+        // Drag and drop
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file) {
+                handleFileSelect(file);
+            }
+        });
+
+        function handleFileSelect(file) {
+            // Check file extension
+            const fileExtension = file.name.split('.').pop().toLowerCase();
+            if (fileExtension !== 'xls') {
+                showStatus('请选择 .xls 文件！/ Please select a .xls file!', 'error');
+                return;
+            }
+
+            selectedFile = file;
+            fileName.textContent = file.name;
+            fileSize.textContent = formatFileSize(file.size);
+            fileInfo.style.display = 'block';
+            processBtn.disabled = false;
+            showStatus('文件已选择，点击"处理文件"按钮开始处理 / File selected, click "Process File" to start', 'info');
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+        }
+
+        function showStatus(message, type) {
+            status.textContent = message;
+            status.className = 'status ' + type;
+            status.style.display = 'block';
+        }
+
+        processBtn.addEventListener('click', async () => {
+            if (!selectedFile) return;
+
+            try {
+                processBtn.disabled = true;
+                showStatus('正在处理文件... / Processing file...', 'info');
+
+                // Read the file
+                const data = await readFileAsArrayBuffer(selectedFile);
+                
+                // Parse the workbook
+                const workbook = XLSX.read(data, { type: 'array' });
+                
+                // Get the first worksheet
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                
+                // Convert to JSON for easier manipulation
+                const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+                
+                // Swap columns U (index 20) and AB (index 27)
+                // Column U is the 21st column (index 20)
+                // Column AB is the 28th column (index 27)
+                const swappedData = jsonData.map(row => {
+                    if (row.length > 0) {
+                        const newRow = [...row];
+                        // Ensure the row has enough columns
+                        while (newRow.length < 28) {
+                            newRow.push('');
+                        }
+                        // Swap columns U (index 20) and AB (index 27)
+                        const temp = newRow[20];
+                        newRow[20] = newRow[27] !== undefined ? newRow[27] : '';
+                        newRow[27] = temp !== undefined ? temp : '';
+                        return newRow;
+                    }
+                    return row;
+                });
+                
+                // Create a new worksheet from the swapped data
+                const newWorksheet = XLSX.utils.aoa_to_sheet(swappedData);
+                
+                // Copy column widths and other properties if they exist
+                if (worksheet['!cols']) {
+                    newWorksheet['!cols'] = [...worksheet['!cols']];
+                    // Swap column widths
+                    if (newWorksheet['!cols'][20] || newWorksheet['!cols'][27]) {
+                        const tempWidth = newWorksheet['!cols'][20];
+                        newWorksheet['!cols'][20] = newWorksheet['!cols'][27];
+                        newWorksheet['!cols'][27] = tempWidth;
+                    }
+                }
+                
+                if (worksheet['!rows']) {
+                    newWorksheet['!rows'] = worksheet['!rows'];
+                }
+                
+                if (worksheet['!merges']) {
+                    newWorksheet['!merges'] = worksheet['!merges'];
+                }
+                
+                // Create a new workbook with the modified worksheet
+                const newWorkbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, firstSheetName);
+                
+                // Generate the file
+                const wbout = XLSX.write(newWorkbook, { bookType: 'xls', type: 'array' });
+                
+                // Create blob and download
+                const blob = new Blob([wbout], { type: 'application/vnd.ms-excel' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                const originalName = selectedFile.name.replace('.xls', '');
+                a.download = `${originalName}_swapped.xls`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                showStatus('处理完成！文件已下载 / Processing completed! File downloaded', 'success');
+                processBtn.disabled = false;
+                
+            } catch (error) {
+                console.error('Error processing file:', error);
+                showStatus('处理失败: ' + error.message + ' / Processing failed: ' + error.message, 'error');
+                processBtn.disabled = false;
+            }
+        });
+
+        function readFileAsArrayBuffer(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.onerror = reject;
+                reader.readAsArrayBuffer(file);
+            });
+        }
+    </script>
+</body>
+</html>
