@@ -62,8 +62,10 @@ cd ChangeXls
 
 This application swaps all data between these two columns.
 
-### 完整样式保留 / Complete Style Preservation
-✅ 本工具现在使用ExcelJS库，可以完全保留所有Excel格式：
+### 样式保留 / Style Preservation
+
+**XLSX文件（推荐）/ XLSX Files (Recommended):**
+✅ 使用ExcelJS库，完全保留所有格式 / Full style preservation with ExcelJS:
 - ✅ 单元格值和公式 / Cell values and formulas
 - ✅ 单元格颜色（背景和字体）/ Cell colors (background and font)
 - ✅ 字体样式（粗体、斜体、大小等）/ Font styles (bold, italic, size, etc.)
@@ -73,11 +75,12 @@ This application swaps all data between these two columns.
 - ✅ 列宽和行高 / Column widths and row heights
 - ✅ 合并单元格 / Merged cells
 
-This tool now uses ExcelJS library for complete Excel format preservation:
-- Cell values, formulas, and all formatting
-- Colors, fonts, borders, alignment
-- Column widths, row heights, merged cells
-- Everything is fully preserved during the column swap
+**XLS文件 / XLS Files:**
+⚠️ XLS格式会自动转换为XLSX。由于格式转换限制，部分样式可能简化。
+- ✅ 数据和基本结构完全保留 / Data and basic structure fully preserved  
+- ⚠️ 复杂样式可能需要手动调整 / Complex styles may need manual adjustment
+
+XLS files are auto-converted to XLSX. Due to format conversion limitations, some complex styles may be simplified. Data and structure are fully preserved.
 
 ## 浏览器兼容性 / Browser Compatibility
 
