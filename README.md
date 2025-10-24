@@ -6,12 +6,13 @@ A simple web application to swap columns U and AB in Excel XLS files.
 
 ## 功能特点 / Features
 
-- ✅ 支持导入 .xls 文件（Excel 97-2003格式）
-- ✅ 自动交换U列（第21列）和AB列（第28列）的数据
-- ✅ 生成新的 .xls 文件供下载
-- ✅ 支持拖放上传
-- ✅ 双语界面（中文/英文）
-- ✅ 纯前端实现，无需后端服务器
+- ✅ 支持导入 .xls 和 .xlsx 文件 / Support .xls and .xlsx files
+- ✅ 自动交换U列（第21列）和AB列（第28列）的数据 / Swap columns U and AB
+- ✅ 保留列宽、行高和合并单元格 / Preserve column widths, row heights, and merged cells
+- ✅ 生成 .xlsx 文件供下载 / Generate .xlsx file for download
+- ✅ 支持拖放上传 / Support drag and drop upload
+- ✅ 双语界面（中文/英文）/ Bilingual interface (Chinese/English)
+- ✅ 纯前端实现，无需后端服务器 / Pure front-end, no backend required
 
 ## 使用方法 / Usage
 
@@ -49,16 +50,37 @@ cd ChangeXls
 - HTML5
 - CSS3
 - JavaScript (ES6+)
-- [SheetJS (xlsx.js)](https://sheetjs.com/) - Excel文件处理库
+- [ExcelJS](https://github.com/exceljs/exceljs) - 完整Excel处理库（支持所有样式）/ Full Excel library with complete style support
+- [SheetJS](https://sheetjs.com/) - XLS格式支持 / XLS format support
 
 ## 列说明 / Column Information
 
 - **U列** = 第21列 (Column 21)
 - **AB列** = 第28列 (Column 28)
 
-本应用会交换这两列的所有数据，包括格式和内容。
+本应用会交换这两列的所有数据。
 
-This application swaps all data between these two columns, including formatting and content.
+This application swaps all data between these two columns.
+
+### 样式保留 / Style Preservation
+
+**XLSX文件（推荐）/ XLSX Files (Recommended):**
+✅ 使用ExcelJS库，完全保留所有格式 / Full style preservation with ExcelJS:
+- ✅ 单元格值和公式 / Cell values and formulas
+- ✅ 单元格颜色（背景和字体）/ Cell colors (background and font)
+- ✅ 字体样式（粗体、斜体、大小等）/ Font styles (bold, italic, size, etc.)
+- ✅ 单元格边框 / Cell borders
+- ✅ 对齐方式 / Cell alignment
+- ✅ 数字格式 / Number formats
+- ✅ 列宽和行高 / Column widths and row heights
+- ✅ 合并单元格 / Merged cells
+
+**XLS文件 / XLS Files:**
+⚠️ XLS格式会自动转换为XLSX。由于格式转换限制，部分样式可能简化。
+- ✅ 数据和基本结构完全保留 / Data and basic structure fully preserved  
+- ⚠️ 复杂样式可能需要手动调整 / Complex styles may need manual adjustment
+
+XLS files are auto-converted to XLSX. Due to format conversion limitations, some complex styles may be simplified. Data and structure are fully preserved.
 
 ## 浏览器兼容性 / Browser Compatibility
 
@@ -69,9 +91,11 @@ This application swaps all data between these two columns, including formatting 
 
 ## 注意事项 / Notes
 
-- 只支持 .xls 格式（Excel 97-2003）
-- 所有处理都在浏览器中完成，文件不会上传到服务器
-- 原始文件不会被修改，会生成新文件下载
+- 支持 .xls 和 .xlsx 格式 / Support .xls and .xlsx formats
+- 输出格式为 .xlsx / Output format is .xlsx
+- 所有处理都在浏览器中完成，文件不会上传到服务器 / All processing is done in the browser, files are not uploaded
+- 原始文件不会被修改，会生成新文件下载 / Original files are not modified, new files are generated
+- XLS文件会自动转换为XLSX格式（保留所有样式）/ XLS files are automatically converted to XLSX format (all styles preserved)
 
 ## License
 

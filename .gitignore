@@ -1,6 +1,11 @@
 # Test files
 test_sample.xls
 *_swapped.xls
+*_swapped.xlsx
+
+# Node modules
+node_modules/
+package-lock.json
 
 # Python
 __pycache__/

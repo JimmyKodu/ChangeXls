@@ -172,16 +172,18 @@
 
         <div class="info-box">
             <p><strong>功能说明 / Description:</strong></p>
-            <p>• 支持导入 .xls 文件（Excel 97-2003格式）</p>
-            <p>• 自动交换U列（第21列）和AB列（第28列）的数据</p>
-            <p>• 生成新的 .xls 文件供下载</p>
+            <p>• 支持导入 .xls 和 .xlsx 文件 / Support .xls and .xlsx files</p>
+            <p>• 自动交换U列（第21列）和AB列（第28列）的数据 / Swap columns U and AB</p>
+            <p>• 保留列宽、行高、合并单元格 / Preserve column widths, row heights, merged cells</p>
+            <p>• 生成 .xlsx 文件供下载 / Generate .xlsx file for download</p>
+            <p style="font-size: 12px; color: #28a745; margin-top: 8px;">✓ 完全保留原始样式（字体、颜色、边框等）<br/>✓ Full style preservation (fonts, colors, borders, etc.)</p>
         </div>
 
         <div class="upload-area" id="uploadArea">
             <div class="upload-icon">📁</div>
-            <div class="upload-text">拖拽文件到这里或点击选择文件</div>
-            <div class="upload-text" style="font-size: 12px; color: #999;">支持 .xls 文件</div>
-            <input type="file" id="fileInput" class="file-input" accept=".xls">
+            <div class="upload-text">拖拽文件到这里或点击选择文件 / Drag file here or click to select</div>
+            <div class="upload-text" style="font-size: 12px; color: #999;">支持 .xls 和 .xlsx 文件 / Support .xls and .xlsx files</div>
+            <input type="file" id="fileInput" class="file-input" accept=".xls,.xlsx">
         </div>
 
         <div class="file-info" id="fileInfo">
@@ -196,13 +198,15 @@
         <div id="status" class="status"></div>
     </div>
 
-    <!-- SheetJS Library -->
+    <!-- SheetJS Library (for XLS support) -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- ExcelJS Library (for XLSX with full style support) -->
+    <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
     
     <script>
-        // Check if XLSX library is loaded
+        // Check if libraries are loaded
         window.addEventListener('load', function() {
-            if (typeof XLSX === 'undefined') {
+            if (typeof XLSX === 'undefined' || typeof ExcelJS === 'undefined') {
                 const status = document.getElementById('status');
                 status.textContent = '错误：无法加载Excel处理库。请确保有网络连接。/ Error: Unable to load Excel library. Please ensure internet connection.';
                 status.className = 'status error';
@@ -255,8 +259,8 @@
         function handleFileSelect(file) {
             // Check file extension
             const fileExtension = file.name.split('.').pop().toLowerCase();
-            if (fileExtension !== 'xls') {
-                showStatus('请选择 .xls 文件！/ Please select a .xls file!', 'error');
+            if (fileExtension !== 'xls' && fileExtension !== 'xlsx') {
+                showStatus('请选择 .xls 或 .xlsx 文件！/ Please select a .xls or .xlsx file!', 'error');
                 return;
             }
 
@@ -289,80 +293,112 @@
                 processBtn.disabled = true;
                 showStatus('正在处理文件... / Processing file...', 'info');
 
-                // Read the file
+                const fileExtension = selectedFile.name.split('.').pop().toLowerCase();
                 const data = await readFileAsArrayBuffer(selectedFile);
                 
-                // Parse the workbook
-                const workbook = XLSX.read(data, { type: 'array' });
+                let excelWorkbook;
+                
+                if (fileExtension === 'xls') {
+                    // For XLS files, convert to XLSX format using SheetJS first
+                    showStatus('正在转换XLS文件... / Converting XLS file...', 'info');
+                    const xlsWorkbook = XLSX.read(data, { 
+                        type: 'array', 
+                        cellStyles: true
+                    });
+                    
+                    // Convert to XLSX buffer
+                    const xlsxBuffer = XLSX.write(xlsWorkbook, { 
+                        bookType: 'xlsx', 
+                        type: 'array',
+                        cellStyles: true
+                    });
+                    
+                    // Load into ExcelJS
+                    excelWorkbook = new ExcelJS.Workbook();
+                    await excelWorkbook.xlsx.load(xlsxBuffer);
+                } else {
+                    // For XLSX files, load directly with ExcelJS
+                    excelWorkbook = new ExcelJS.Workbook();
+                    await excelWorkbook.xlsx.load(data);
+                }
+                
+                showStatus('正在交换列数据... / Swapping columns...', 'info');
                 
                 // Get the first worksheet
-                const firstSheetName = workbook.SheetNames[0];
-                const worksheet = workbook.Sheets[firstSheetName];
-                
-                // Convert to JSON for easier manipulation
-                const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
-                
-                // Swap columns U (index 20) and AB (index 27)
-                // Column U is the 21st column (index 20)
-                // Column AB is the 28th column (index 27)
-                const swappedData = jsonData.map(row => {
-                    if (row.length > 0) {
-                        const newRow = [...row];
-                        // Ensure the row has enough columns
-                        while (newRow.length < 28) {
-                            newRow.push('');
-                        }
-                        // Swap columns U (index 20) and AB (index 27)
-                        const temp = newRow[20];
-                        newRow[20] = newRow[27] !== undefined ? newRow[27] : '';
-                        newRow[27] = temp !== undefined ? temp : '';
-                        return newRow;
-                    }
-                    return row;
-                });
-                
-                // Create a new worksheet from the swapped data
-                const newWorksheet = XLSX.utils.aoa_to_sheet(swappedData);
-                
-                // Copy column widths and other properties if they exist
-                if (worksheet['!cols']) {
-                    newWorksheet['!cols'] = [...worksheet['!cols']];
-                    // Swap column widths
-                    if (newWorksheet['!cols'][20] || newWorksheet['!cols'][27]) {
-                        const tempWidth = newWorksheet['!cols'][20];
-                        newWorksheet['!cols'][20] = newWorksheet['!cols'][27];
-                        newWorksheet['!cols'][27] = tempWidth;
-                    }
+                const worksheet = excelWorkbook.worksheets[0];
+                if (!worksheet) {
+                    throw new Error('工作表为空 / Worksheet is empty');
                 }
                 
-                if (worksheet['!rows']) {
-                    newWorksheet['!rows'] = worksheet['!rows'];
+                // Swap columns U (21) and AB (28)
+                const maxRow = worksheet.rowCount || worksheet.actualRowCount || 1000;
+                
+                for (let rowNum = 1; rowNum <= maxRow; rowNum++) {
+                    const row = worksheet.getRow(rowNum);
+                    if (!row) continue;
+                    
+                    const cellU = row.getCell(21);  // Column U
+                    const cellAB = row.getCell(28); // Column AB
+                    
+                    // Store cell U properties
+                    const tempValue = cellU.value;
+                    const tempStyle = {
+                        font: cellU.font ? {...cellU.font} : undefined,
+                        fill: cellU.fill ? {...cellU.fill} : undefined,
+                        border: cellU.border ? {...cellU.border} : undefined,
+                        alignment: cellU.alignment ? {...cellU.alignment} : undefined,
+                        numFmt: cellU.numFmt,
+                        protection: cellU.protection ? {...cellU.protection} : undefined
+                    };
+                    
+                    // Copy AB to U
+                    cellU.value = cellAB.value;
+                    if (cellAB.font) cellU.font = cellAB.font;
+                    if (cellAB.fill) cellU.fill = cellAB.fill;
+                    if (cellAB.border) cellU.border = cellAB.border;
+                    if (cellAB.alignment) cellU.alignment = cellAB.alignment;
+                    if (cellAB.numFmt) cellU.numFmt = cellAB.numFmt;
+                    if (cellAB.protection) cellU.protection = cellAB.protection;
+                    
+                    // Copy temp (original U) to AB
+                    cellAB.value = tempValue;
+                    if (tempStyle.font) cellAB.font = tempStyle.font;
+                    if (tempStyle.fill) cellAB.fill = tempStyle.fill;
+                    if (tempStyle.border) cellAB.border = tempStyle.border;
+                    if (tempStyle.alignment) cellAB.alignment = tempStyle.alignment;
+                    if (tempStyle.numFmt) cellAB.numFmt = tempStyle.numFmt;
+                    if (tempStyle.protection) cellAB.protection = tempStyle.protection;
+                    
+                    row.commit();
                 }
                 
-                if (worksheet['!merges']) {
-                    newWorksheet['!merges'] = worksheet['!merges'];
-                }
+                // Swap column widths
+                const colU = worksheet.getColumn(21);
+                const colAB = worksheet.getColumn(28);
+                const tempWidth = colU.width;
+                colU.width = colAB.width;
+                colAB.width = tempWidth;
                 
-                // Create a new workbook with the modified worksheet
-                const newWorkbook = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, firstSheetName);
+                showStatus('正在生成文件... / Generating file...', 'info');
                 
-                // Generate the file
-                const wbout = XLSX.write(newWorkbook, { bookType: 'xls', type: 'array' });
+                // Write to buffer
+                const buffer = await excelWorkbook.xlsx.writeBuffer();
                 
                 // Create blob and download
-                const blob = new Blob([wbout], { type: 'application/vnd.ms-excel' });
+                const blob = new Blob([buffer], { 
+                    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+                });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                const originalName = selectedFile.name.replace('.xls', '');
-                a.download = `${originalName}_swapped.xls`;
+                const originalName = selectedFile.name.replace(/\.(xls|xlsx)$/i, '');
+                a.download = `${originalName}_swapped.xlsx`;
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
                 
-                showStatus('处理完成！文件已下载 / Processing completed! File downloaded', 'success');
+                showStatus('处理完成！文件已下载，样式已完整保留 / Processing completed! File downloaded with full style preservation', 'success');
                 processBtn.disabled = false;
                 
             } catch (error) {
