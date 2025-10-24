@@ -69,5 +69,7 @@ npx http-server -p 8000
 - ✅ All processing happens in the browser
 - ✅ 文件不会上传到任何服务器
 - ✅ Files are not uploaded to any server
-- ⚠️ 需要互联网连接以加载 SheetJS 库
-- ⚠️ Internet connection required to load SheetJS library
+- ⚠️ 需要互联网连接以加载 SheetJS 和 ExcelJS 库
+- ⚠️ Internet connection required to load SheetJS and ExcelJS libraries
+- 💡 建议用户使用 XLSX 格式以获得完整的格式保留
+- 💡 Recommend users to use XLSX format for full style preservation

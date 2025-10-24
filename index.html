@@ -126,6 +126,8 @@
             text-align: center;
             font-size: 14px;
             display: none;
+            white-space: pre-line;
+            line-height: 1.6;
         }
 
         .status.success {
@@ -176,7 +178,8 @@
             <p>• 自动交换U列（第21列）和AB列（第28列）的数据 / Swap columns U and AB</p>
             <p>• 保留列宽、行高、合并单元格 / Preserve column widths, row heights, merged cells</p>
             <p>• 生成 .xlsx 文件供下载 / Generate .xlsx file for download</p>
-            <p style="font-size: 12px; color: #28a745; margin-top: 8px;">✓ 完全保留原始样式（字体、颜色、边框等）<br/>✓ Full style preservation (fonts, colors, borders, etc.)</p>
+            <p style="font-size: 12px; color: #28a745; margin-top: 8px;"><strong>✓ XLSX文件：</strong>完全保留原始样式（字体、颜色、边框等）<br/><strong>✓ XLSX files:</strong> Full style preservation (fonts, colors, borders, etc.)</p>
+            <p style="font-size: 12px; color: #ff8c00; margin-top: 5px;"><strong>⚠ XLS文件：</strong>由于旧格式限制，建议先在Excel中另存为.xlsx以保留完整样式<br/><strong>⚠ XLS files:</strong> Due to legacy format limitations, please save as .xlsx in Excel first for full formatting</p>
         </div>
 
         <div class="upload-area" id="uploadArea">
@@ -269,7 +272,13 @@
             fileSize.textContent = formatFileSize(file.size);
             fileInfo.style.display = 'block';
             processBtn.disabled = false;
-            showStatus('文件已选择，点击"处理文件"按钮开始处理 / File selected, click "Process File" to start', 'info');
+            
+            // Show different messages based on file type
+            if (fileExtension === 'xls') {
+                showStatus('⚠️ XLS文件已选择。注意：为完整保留字体和边框样式，建议先在Excel中另存为.xlsx格式。点击"处理文件"继续。\n⚠️ XLS file selected. Note: For full font and border style preservation, please save as .xlsx in Excel first. Click "Process File" to continue.', 'info');
+            } else {
+                showStatus('✓ XLSX文件已选择，将完整保留所有样式。点击"处理文件"按钮开始处理。\n✓ XLSX file selected, all styles will be fully preserved. Click "Process File" to start.', 'info');
+            }
         }
 
         function formatFileSize(bytes) {
@@ -521,7 +530,13 @@
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
                 
-                showStatus('处理完成！文件已下载，样式已完整保留 / Processing completed! File downloaded with full style preservation', 'success');
+                // Show appropriate success message based on file type
+                const origExtension = selectedFile.name.split('.').pop().toLowerCase();
+                if (origExtension === 'xlsx') {
+                    showStatus('✓ 处理完成！文件已下载，所有样式已完整保留。\n✓ Processing completed! File downloaded with full style preservation.', 'success');
+                } else {
+                    showStatus('✓ 处理完成！文件已下载。\n注意：XLS格式限制，字体和边框可能使用默认样式。如需完整样式，请使用XLSX格式。\n✓ Processing completed! File downloaded.\nNote: Due to XLS format limitations, fonts and borders may use default styles. For full formatting, please use XLSX format.', 'success');
+                }
                 processBtn.disabled = false;
                 
             } catch (error) {
