@@ -2,16 +2,25 @@
 
 ## 快速开始 / Quick Start
 
-### 1. 准备 XLS 文件 / Prepare your XLS file
+### 1. 准备文件 / Prepare your file
 
-确保您的文件是 `.xls` 格式（Excel 97-2003），而不是 `.xlsx`。
+本工具支持 `.xls` 和 `.xlsx` 两种格式：
 
-Make sure your file is in `.xls` format (Excel 97-2003), not `.xlsx`.
+This tool supports both `.xls` and `.xlsx` formats:
 
-**如何转换 / How to convert:**
-- 在 Excel 中打开文件 / Open the file in Excel
+**✅ 推荐使用 XLSX 格式 / XLSX Format Recommended:**
+- 完全保留所有格式（字体、颜色、边框等）
+- Full style preservation (fonts, colors, borders, etc.)
+
+**⚠️ XLS 格式限制 / XLS Format Limitations:**
+- 数据正常交换，但字体和边框可能丢失
+- Data swaps correctly, but fonts and borders may be lost
+
+**如何转换 XLS 到 XLSX / How to convert XLS to XLSX:**
+- 在 Excel 中打开 XLS 文件 / Open the XLS file in Excel
 - 文件 → 另存为 / File → Save As
-- 选择格式：Excel 97-2003 工作簿 (*.xls) / Choose format: Excel 97-2003 Workbook (*.xls)
+- 选择格式：Excel 工作簿 (*.xlsx) / Choose format: Excel Workbook (*.xlsx)
+- 使用转换后的 XLSX 文件以保留完整格式 / Use the converted XLSX file for full formatting
 
 ### 2. 上传文件 / Upload file
 
@@ -34,9 +43,11 @@ There are two ways to upload:
 
 ### 4. 检查结果 / Check results
 
-下载的文件名称格式：`原文件名_swapped.xls`
+下载的文件名称格式：`原文件名_swapped.xlsx`
 
-The downloaded file will be named: `original_filename_swapped.xls`
+The downloaded file will be named: `original_filename_swapped.xlsx`
+
+**注意 / Note**: 输出文件始终为 XLSX 格式 / Output is always in XLSX format
 
 **验证交换 / Verify the swap:**
 - 打开原始文件和处理后的文件 / Open both original and processed files
@@ -64,11 +75,16 @@ The downloaded file will be named: `original_filename_swapped.xls`
 
 ## 常见问题 / FAQ
 
-**Q: 为什么只支持 .xls 不支持 .xlsx？**
-**Q: Why only .xls and not .xlsx?**
+**Q: XLS 和 XLSX 格式有什么区别？**
+**Q: What's the difference between XLS and XLSX formats?**
 
-A: 当前版本专门设计用于处理 .xls 格式。如果您有 .xlsx 文件，请先在 Excel 中转换为 .xls 格式。
-A: The current version is specifically designed for .xls format. If you have .xlsx files, please convert them to .xls in Excel first.
+A: 
+- **XLSX（推荐）**: 现代格式，完全保留所有样式（字体、颜色、边框等）
+- **XLS**: 旧格式，数据正常处理，但字体和边框信息会丢失
+
+A: 
+- **XLSX (Recommended)**: Modern format, fully preserves all styles (fonts, colors, borders, etc.)
+- **XLS**: Legacy format, processes data correctly, but font and border information will be lost
 
 **Q: 数据是否会上传到服务器？**
 **Q: Is my data uploaded to a server?**
@@ -91,8 +107,15 @@ A: No. Only columns U and AB are swapped, all other columns remain unchanged.
 **Q: 格式和公式会保留吗？**
 **Q: Are formatting and formulas preserved?**
 
-A: 基本格式会保留，但复杂的公式可能会丢失。建议在处理前备份原文件。
-A: Basic formatting is preserved, but complex formulas might be lost. We recommend backing up your original file before processing.
+A: 
+- **XLSX 文件**: 完全保留所有格式、字体、颜色、边框、公式等
+- **XLS 文件**: 数据和公式保留，但字体名称、大小、边框会使用默认样式
+- 建议在处理前备份原文件
+
+A: 
+- **XLSX files**: Fully preserves all formatting, fonts, colors, borders, formulas, etc.
+- **XLS files**: Data and formulas preserved, but font names, sizes, and borders use default styles
+- We recommend backing up your original file before processing
 
 ## 技术支持 / Technical Support
 
